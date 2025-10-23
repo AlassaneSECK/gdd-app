@@ -5,8 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.ViewModelProvider
@@ -21,6 +21,7 @@ import com.example.gestionnaire_de_depense.di.AppContainer
 import com.example.gestionnaire_de_depense.ui.auth.AuthContent
 import com.example.gestionnaire_de_depense.ui.auth.AuthMode
 import com.example.gestionnaire_de_depense.ui.auth.AuthScreen
+import com.example.gestionnaire_de_depense.budget.presentation.BudgetViewModel
 import com.example.gestionnaire_de_depense.ui.home.HomeScreen
 import com.example.gestionnaire_de_depense.ui.theme.AppTheme
 
@@ -32,6 +33,10 @@ class MainActivity : ComponentActivity() {
 
     private val authViewModel: AuthViewModel by lazy {
         ViewModelProvider(this, appContainer.authViewModelFactory)[AuthViewModel::class.java]
+    }
+
+    private val budgetViewModel: BudgetViewModel by lazy {
+        ViewModelProvider(this, appContainer.budgetViewModelFactory)[BudgetViewModel::class.java]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +78,8 @@ class MainActivity : ComponentActivity() {
                                 coroutineScope.launch {
                                     authViewModel.logout()
                                 }
-                            }
+                            },
+                            budgetViewModel = budgetViewModel
                         )
                     }
                 }

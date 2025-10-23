@@ -26,8 +26,11 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
-import org.json.JSONException
-import org.json.JSONObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.longOrNull
 import retrofit2.HttpException
 import java.io.IOException
 import java.nio.charset.StandardCharsets
@@ -47,6 +50,7 @@ class AuthRepositoryImpl(
     private val subjectKey = stringPreferencesKey("auth_subject")
     private val issuedAtKey = longPreferencesKey("auth_issued_at")
     private val expiresAtKey = longPreferencesKey("auth_expires_at")
+    private val jwtJson: Json = Json { ignoreUnknownKeys = true }
 
     override val session: Flow<AuthSession?> = combine(
         dataStore.data,
@@ -163,24 +167,23 @@ class AuthRepositoryImpl(
             throw InvalidAuthTokenException()
         }
         val payloadJson = decodeBase64Url(segments[1])
-        try {
-            val payload = JSONObject(payloadJson)
-            val subject = payload.optString("sub", null) ?: throw InvalidAuthTokenException()
-            if (!payload.has("iat") || !payload.has("exp")) {
-                throw InvalidAuthTokenException()
-            }
-            val issuedAtSeconds = payload.getLong("iat")
-            val expiresAtSeconds = payload.getLong("exp")
+        return try {
+            val payload = jwtJson.parseToJsonElement(payloadJson).jsonObject
+            val subject = payload["sub"]?.jsonPrimitive?.contentOrNull ?: throw InvalidAuthTokenException()
+            val issuedAtSeconds = payload["iat"]?.jsonPrimitive?.longOrNull ?: throw InvalidAuthTokenException()
+            val expiresAtSeconds = payload["exp"]?.jsonPrimitive?.longOrNull ?: throw InvalidAuthTokenException()
             val issuedAt = Instant.ofEpochSecond(issuedAtSeconds)
             val expiresAt = Instant.ofEpochSecond(expiresAtSeconds)
 
-            return AuthSession(
+            AuthSession(
                 token = token,
                 subject = subject,
                 issuedAt = issuedAt,
                 expiresAt = expiresAt
             )
-        } catch (error: JSONException) {
+        } catch (error: SerializationException) {
+            throw InvalidAuthTokenException(error)
+        } catch (error: IllegalArgumentException) {
             throw InvalidAuthTokenException(error)
         } catch (error: DateTimeException) {
             throw InvalidAuthTokenException(error)

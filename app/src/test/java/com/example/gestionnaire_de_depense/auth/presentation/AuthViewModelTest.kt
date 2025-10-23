@@ -5,18 +5,20 @@ import com.example.gestionnaire_de_depense.auth.domain.AuthSession
 import com.example.gestionnaire_de_depense.auth.domain.EmailAlreadyUsedException
 import com.example.gestionnaire_de_depense.auth.domain.InvalidCredentialsException
 import com.example.gestionnaire_de_depense.util.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
 import java.time.Instant
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
 
     @get:Rule

@@ -1,16 +1,18 @@
 package com.example.gestionnaire_de_depense.util
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestDispatcher
-import kotlinx.coroutines.test.TestWatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import org.junit.rules.TestRule
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.rules.TestWatcher
 import org.junit.runner.Description
-import org.junit.runners.model.Statement
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MainDispatcherRule(
     val dispatcher: TestDispatcher = UnconfinedTestDispatcher()
-) : TestWatcher(), TestRule {
+) : TestWatcher() {
 
     override fun starting(description: Description) {
         Dispatchers.setMain(dispatcher)
@@ -18,9 +20,5 @@ class MainDispatcherRule(
 
     override fun finished(description: Description) {
         Dispatchers.resetMain()
-    }
-
-    override fun apply(base: Statement, description: Description): Statement {
-        return super.apply(base, description)
     }
 }

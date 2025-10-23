@@ -18,16 +18,17 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
-import org.junit.Before
-import org.junit.Test
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Before
+import org.junit.Test
 import java.io.File
 import java.time.Instant
 import java.util.Base64
+import java.time.temporal.ChronoUnit
 import kotlin.io.path.createTempDirectory
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -78,7 +79,7 @@ class AuthRepositoryImplTest {
 
     @Test
     fun loginShouldStoreSessionAndEmitAuthenticated() = runTest(testDispatcher) {
-        val issuedAt = BASE_ISSUED_AT
+        val issuedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS)
         val expiresAt = issuedAt.plusSeconds(3600)
         val token = createJwt(issuedAt = issuedAt, expiresAt = expiresAt)
         mockWebServer.enqueue(successResponse(token = token))
@@ -100,7 +101,7 @@ class AuthRepositoryImplTest {
 
     @Test
     fun registerShouldStoreSessionAndEmitAuthenticated() = runTest(testDispatcher) {
-        val issuedAt = BASE_ISSUED_AT.plusSeconds(60)
+        val issuedAt = Instant.now().plusSeconds(60).truncatedTo(ChronoUnit.SECONDS)
         val expiresAt = issuedAt.plusSeconds(5400)
         val token = createJwt(subject = "new@example.com", issuedAt = issuedAt, expiresAt = expiresAt)
         mockWebServer.enqueue(successResponse(code = 201, token = token))
@@ -124,8 +125,11 @@ class AuthRepositoryImplTest {
     fun loginUnauthorizedShouldThrowInvalidCredentialsException() = runTest(testDispatcher) {
         mockWebServer.enqueue(MockResponse().setResponseCode(401))
 
-        assertThrows(InvalidCredentialsException::class.java) {
+        try {
             repository.login("user@example.com", "password123")
+            fail("Expected InvalidCredentialsException")
+        } catch (error: Throwable) {
+            assertTrue(error is InvalidCredentialsException)
         }
     }
 
@@ -133,8 +137,11 @@ class AuthRepositoryImplTest {
     fun registerConflictShouldThrowEmailAlreadyUsedException() = runTest(testDispatcher) {
         mockWebServer.enqueue(MockResponse().setResponseCode(409))
 
-        assertThrows(EmailAlreadyUsedException::class.java) {
+        try {
             repository.register("user@example.com", "password123")
+            fail("Expected EmailAlreadyUsedException")
+        } catch (error: Throwable) {
+            assertTrue(error is EmailAlreadyUsedException)
         }
     }
 
@@ -166,8 +173,11 @@ class AuthRepositoryImplTest {
         )
         mockWebServer.enqueue(successResponse(token = expiredToken))
 
-        assertThrows(InvalidAuthTokenException::class.java) {
+        try {
             repository.login("user@example.com", "password123")
+            fail("Expected InvalidAuthTokenException")
+        } catch (error: Throwable) {
+            assertTrue(error is InvalidAuthTokenException)
         }
     }
 
@@ -200,11 +210,9 @@ class AuthRepositoryImplTest {
     }
 
     companion object {
-        private val BASE_ISSUED_AT: Instant = Instant.parse("2024-05-10T10:00:00Z")
-
         private fun createJwt(
             subject: String = "user@example.com",
-            issuedAt: Instant = BASE_ISSUED_AT,
+            issuedAt: Instant = Instant.now().truncatedTo(ChronoUnit.SECONDS),
             expiresAt: Instant = issuedAt.plusSeconds(3600)
         ): String {
             val header = """{"alg":"HS256","typ":"JWT"}"""
